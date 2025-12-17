@@ -38,9 +38,9 @@ ubuntu_inst_audit() {
 clean_junk_files() {
     rm -rf /etc/filebeat
     rm -rf /var/lib/filebeat
-    rm -rf /etc/profile.d/history-monitor.sh
+    rm -rf /var/log/filebeat
     rm -rf /usr/lib/systemd/system/filebeat.service
-    systemctl daemon-reload
+    rm -rf /etc/audit/rules.d/99-custom.rules
 }
 
 #centos安装filebeat服务
@@ -123,7 +123,12 @@ source /etc/bash.bashrc
 
 #确认filebeat.tar.gz部署包是否存在
 file_exist() {
+    [[ `pwd` != "/tmp" ]] && echo "请将Shell脚本放到/tmp目录下执行 !!!" && exit 2
     cd /tmp
+    echo "开始下载Audit规则文件和filebeat.tar.gz部署包......"
+    sleep 2
+    wget https://raw.githubusercontent.com/gagaga2468/filebeat/refs/heads/main/99-custom.rules
+    wget https://raw.githubusercontent.com/gagaga2468/filebeat/refs/heads/main/filebeat.tar.gz
     [[ ! -f filebeat.tar.gz ]] && echo "找不到filebeat.tar.gz部署包，请将部署包和安装脚本放在/tmp目录下 !!!" && exit 1
     [[ ! -f 99-custom.rules ]] && echo "找不到audit规则文件99-custom.rules，请将audit规则文件和安装脚本放在/tmp目录下 !!!" && exit 1
 }
@@ -192,6 +197,8 @@ main_uninstall() {
         rpm -aq | grep filebeat
         if [[ $? -eq 0 ]];then
             systemctl stop filebeat
+            auditctl -D
+            systemctl daemon-reload
             yum remove -y filebeat
             clean_junk_files
         else
@@ -202,6 +209,8 @@ main_uninstall() {
         dpkg -s filebeat
         if [[ $? -eq 0 ]];then
             systemctl stop filebeat
+            auditctl -D
+            systemctl daemon-reload
             apt purge -y filebeat
             clean_junk_files
         else
