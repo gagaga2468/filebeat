@@ -1,0 +1,50 @@
+#所有 root 执行的程序（核心）
+-a always,exit -F arch=b64 -S execve,execveat -F euid=0 -k exec_root
+-a always,exit -F arch=b32 -S execve,execveat -F euid=0 -k exec_root
+
+#非系统用户执行程序（业务侧风险）
+-a always,exit -F arch=b64 -S execve,execveat -F uid>=1000 -F uid!=65534 -k exec_user
+-a always,exit -F arch=b32 -S execve,execveat -F uid>=1000 -F uid!=65534 -k exec_user
+
+#临时目录执行（高危，强烈推荐）
+-a always,exit -F arch=b64 -S execve,execveat -F dir=/tmp -k exec_tmp
+-a always,exit -F arch=b32 -S execve,execveat -F dir=/tmp -k exec_tmp
+
+-a always,exit -F arch=b64 -S execve,execveat -F dir=/var/tmp -k exec_vartmp
+-a always,exit -F arch=b32 -S execve,execveat -F dir=/var/tmp -k exec_vartmp
+
+#可写目录执行（WebShell / 容器逃逸）
+-a always,exit -F arch=b64 -S execve,execveat -F dir=/dev/shm -k exec_shm
+-a always,exit -F arch=b32 -S execve,execveat -F dir=/dev/shm -k exec_shm
+
+#cron / at 执行（计划任务滥用 Ubuntu/Centos）
+-a always,exit -F arch=b64 -S execve -F exe=/usr/sbin/cron -k exec_cron
+-a always,exit -F arch=b32 -S execve -F exe=/usr/sbin/cron -k exec_cron
+
+-a always,exit -F arch=b64 -S execve -F exe=/sbin/crond -k exec_cron
+-a always,exit -F arch=b32 -S execve -F exe=/sbin/crond -k exec_cron
+
+#SSH 登录后执行（配合 auth 日志）
+-a always,exit -F arch=b64 -S execve -F exe=/usr/sbin/sshd -k exec_ssh
+-a always,exit -F arch=b32 -S execve -F exe=/usr/sbin/sshd -k exec_ssh
+
+#后门植入(SSH/定时任务)
+-w /root/.ssh/authorized_keys -p wa -k ssh_backdoor
+-w /etc/ssh/ -p wa -k ssh_backdoor
+
+#sudoers文件被修改
+-w /etc/sudoers -p wa -k sudoers_change
+-w /etc/sudoers.d/ -p wa -k sudoers_change
+
+## Identity changes.
+-w /etc/group -p wa -k identity
+-w /etc/passwd -p wa -k identity
+-w /etc/gshadow -p wa -k identity
+-w /etc/shadow -p wa -k identity
+
+## Unauthorized access attempts.
+-a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+-a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-a always,exit -F arch=b64 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+-a always,exit -F arch=b64 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+
