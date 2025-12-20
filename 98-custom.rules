@@ -1,0 +1,38 @@
+#1、审计所有命令执行（64 位），只审计 root 执行的命令（强烈推荐）
+-a always,exit -F arch=b64 -S execve -F uid=0
+#2、只审计 sudo 后的命令（非常实用）
+#auid>=1000 → 过滤普通用户
+#auid!=4294967295 → 排除 unset / 非登录会话
+-a always,exit -F arch=b64 -S execve -F euid=0 -F auid>=1000 -F auid!=4294967295
+
+#3、sudoers 文件被修改
+-w /etc/sudoers -p wa -k sudoers_change
+-w /etc/sudoers.d/ -p wa -k sudoers_change
+
+#4、用户 / 登录相关（必配）
+#-w /var/log/auth.log -p wa -k auth_log
+
+#5、账户管理审计（运维 / 入侵重点）
+-w /etc/passwd -p wa -k user_change
+-w /etc/shadow -p wa -k user_change
+-w /etc/group -p wa -k user_change
+
+#后门植入(SSH/定时任务)
+-w /root/.ssh/authorized_keys -p wa -k ssh_backdoor
+-w /etc/ssh/ -p wa -k ssh_backdoor
+-w /var/spool/cron/ -p wa -k cron_backdoor
+
+#7、审计自身防护（极其重要）
+-a always,exit -F arch=b64 -S execve -F exe=/bin/systemctl -k service_change
+-a always,exit -F arch=b64 -S execve -F exe=/usr/bin/systemctl -k service_change
+-a always,exit -F arch=b64 -S execve -F exe=/bin/kill -k service_change
+-a always,exit -F arch=b64 -S execve -F exe=/usr/bin/kill -k service_change
+
+# 监控 audit 配置文件修改
+-w /etc/audit/audit.rules -p wa -k audit_config
+-w /etc/audit/rules.d/ -p wa -k audit_config
+-w /etc/audit/auditd.conf -p wa -k audit_config
+
+#8、防火墙规则修改(ubuntu/centos)
+-w /etc/iptables/ -p wa -k firewall_change
+-w /etc/sysconfig/iptables -p wa -k firewall_change
