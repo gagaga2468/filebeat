@@ -130,7 +130,7 @@ file_exist() {
     wget https://raw.githubusercontent.com/gagaga2468/filebeat/refs/heads/main/98-custom.rules
     wget https://raw.githubusercontent.com/gagaga2468/filebeat/refs/heads/main/filebeat.tar.gz
     [[ ! -f filebeat.tar.gz ]] && echo "找不到filebeat.tar.gz部署包，请将部署包和安装脚本放在/tmp目录下 !!!" && exit 1
-    [[ ! -f 98-custom.rules ]] && echo "找不到audit规则文件99-custom.rules，请将audit规则文件和安装脚本放在/tmp目录下 !!!" && exit 1
+    [[ ! -f 98-custom.rules ]] && echo "找不到audit规则文件98-custom.rules，请将audit规则文件和安装脚本放在/tmp目录下 !!!" && exit 1
 }
 
 #初始化filebeat
