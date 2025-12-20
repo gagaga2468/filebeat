@@ -1,9 +1,14 @@
 #1、审计所有命令执行（64 位），只审计 root 执行的命令（强烈推荐）
--a always,exit -F arch=b64 -S execve -F uid=0
+-a always,exit -F arch=b64 -S execve -F uid=0 -k exec_root
+
 #2、只审计 sudo 后的命令（非常实用）
-#auid>=1000 → 过滤普通用户
-#auid!=4294967295 → 排除 unset / 非登录会话
--a always,exit -F arch=b64 -S execve -F euid=0 -F auid>=1000 -F auid!=4294967295
+# 捕获所有普通登录用户执行 execve
+-a always,exit -F arch=b64 -S execve -F auid>=1000 -F auid!=-1 -F key=exec_user
+
+# 捕获 nginx 用户执行 shell（无 auid / auid=-1）
+-a always,exit -F arch=b64 -S execve -F auid=4294967295 -F key=exec_webshell
+-a always,exit -F arch=b64 -S execve -F exe=/bin/sh -F key=exec_webshell
+-a always,exit -F arch=b64 -S execve -F exe=/bin/bash -F key=exec_webshell
 
 #3、sudoers 文件被修改
 -w /etc/sudoers -p wa -k sudoers_change
@@ -15,7 +20,6 @@
 #5、账户管理审计（运维 / 入侵重点）
 -w /etc/passwd -p wa -k user_change
 -w /etc/shadow -p wa -k user_change
--w /etc/gshadow -p wa -k user_change
 -w /etc/group -p wa -k user_change
 
 #后门植入(SSH/定时任务)
@@ -37,3 +41,12 @@
 #8、防火墙规则修改(ubuntu/centos)
 -w /etc/iptables/ -p wa -k firewall_change
 -w /etc/sysconfig/iptables -p wa -k firewall_change
+
+#9、PHP环境的Web-Shell漏洞监控
+#核心思想使用php/php-fpm进程执行了不该执行的网络命令(sh/bash/curl/wget/nc)，监控还是针对EXECVE类型日志
+#只监控代码目录,不要监控日志，静态文件目录
+-w /var/www/html -p wa -k web_write
+
+#tmp 执行（高危）
+-w /tmp -p wa -k tmp_write
+
