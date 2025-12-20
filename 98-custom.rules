@@ -15,6 +15,7 @@
 #5、账户管理审计（运维 / 入侵重点）
 -w /etc/passwd -p wa -k user_change
 -w /etc/shadow -p wa -k user_change
+-w /etc/gshadow -p wa -k user_change
 -w /etc/group -p wa -k user_change
 
 #后门植入(SSH/定时任务)
